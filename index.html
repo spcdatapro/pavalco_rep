@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pavalco - Integraci&oacute;n mensual de llamadas</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+    <style>
+        .enc{text-align: center; white-space: nowrap}
+        .num{ text-align: right; }
+    </style>
+</head>
+<body ng-app="pavalco">
+    <div class="container-fluid" ng-controller="rptIntegraCtrl">
+        <div class="row">
+            <div class="col-md-12">
+                <h1>PAVALCO</h1>
+                <h2>Integraci&oacute;n mensual de llamadas</h2>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-primary">
+                    <div class="panel-heading">Par&aacute;metros</div>
+                    <div class="panel-body">
+                        <div class="row">
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="txtAnio">A&ntilde;o:</label>
+                                    <input name="txtAnio" id="txtAnio" type="number" class="form-control" ng-model="param.anio" min="2000"/>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="selDe">De:</label>
+                                    <select name="selDe" id="selDe" class="form-control" ng-model="param.dmes">
+                                        <option ng-repeat="m in meses" value="{{m.id}}">{{m.mes}}</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="selA">A:</label>
+                                    <select name="selA" id="selA" class="form-control" ng-model="param.ames">
+                                        <option ng-repeat="m in meses" value="{{m.id}}">{{m.mes}}</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-1">
+                                <div class="form-group">
+                                    <label for="chkTopTen">Top 10:</label>
+                                    <input name="chkTopTen" id="chkTopTen" type="checkbox" class="form-control" ng-model="param.topten" ng-true-value="1" ng-false-value="0"/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="well well-sm">
+                                    <span>
+                                        <strong>NOTA:</strong>&nbsp;
+                                        Dependiendo de los par&aacute;metros, la generación de este reporte puede durar mucho tiempo. Por favor espere a que se muestren los datos. Gracias.
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="btn-group btn-group-sm" role="group" aria-label="...">
+                                    <button type="button" class="btn btn-primary btn-sm" ng-click="generar()">
+                                        <span class="glyphicon glyphicon-ok"></span>
+                                    </button>
+                                    <button type="button" class="btn btn-primary btn-sm" ng-click="toXLS()" ng-show="data !== null">
+                                        <span class="glyphicon glyphicon-export"></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div ng-show="cargando" style="text-align: center">
+            <img src="img/loading.gif"/>
+        </div>
+        <div id="toXLS" class="row" ng-show="data !== null">
+            <div class="col-md-12">
+                <h4>Total de m&aacute;quinas activas: {{data.totMaquinasActivas | number:0}}</h4>
+                <div class="table-responsive">
+                    <table class="table table-hover table-condensed table-bordered">
+                        <caption>Reporte por tipo de llamada</caption>
+                        <thead>
+                        <tr>
+                            <th>&nbsp;</th>
+                            <th colspan="2" ng-show="showColumn[1]" class="enc">Enero</th>
+                            <th colspan="2" ng-show="showColumn[2]" class="enc">Febrero</th>
+                            <th colspan="2" ng-show="showColumn[3]" class="enc">Marzo</th>
+                            <th colspan="2" ng-show="showColumn[4]" class="enc">Abril</th>
+                            <th colspan="2" ng-show="showColumn[5]" class="enc">Mayo</th>
+                            <th colspan="2" ng-show="showColumn[6]" class="enc">Junio</th>
+                            <th colspan="2" ng-show="showColumn[7]" class="enc">Julio</th>
+                            <th colspan="2" ng-show="showColumn[8]" class="enc">Agosto</th>
+                            <th colspan="2" ng-show="showColumn[9]" class="enc">Septiembre</th>
+                            <th colspan="2" ng-show="showColumn[10]" class="enc">Octubre</th>
+                            <th colspan="2" ng-show="showColumn[11]" class="enc">Noviembre</th>
+                            <th colspan="2" ng-show="showColumn[12]" class="enc">Diciembre</th>
+                            <th colspan="2">Acumulado</th>
+                        </tr>
+                        <tr>
+                            <th>Llamadas</th>
+                            <th ng-show="showColumn[1]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[1]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[2]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[2]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[3]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[3]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[4]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[4]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[5]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[5]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[6]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[6]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[7]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[7]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[8]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[8]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[9]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[9]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[10]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[10]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[11]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[11]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[12]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[12]" class="enc">% Mix</th>
+                            <th class="enc">Cantidad</th>
+                            <th class="enc">% Mix</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr ng-repeat="tl in data.TiposLlamada">
+                            <td>{{tl.TipoLlamada}}</td>
+                            <td ng-show="showColumn[1]" class="num">{{tl.ENE | number:0}}</td>
+                            <td ng-show="showColumn[1]" class="num">{{tl.Mix_ENE | number:2}}</td>
+                            <td ng-show="showColumn[2]" class="num">{{tl.FEB | number:0}}</td>
+                            <td ng-show="showColumn[2]" class="num">{{tl.Mix_FEB | number:2}}</td>
+                            <td ng-show="showColumn[3]" class="num">{{tl.MAR | number:0}}</td>
+                            <td ng-show="showColumn[3]" class="num">{{tl.Mix_MAR | number:2}}</td>
+                            <td ng-show="showColumn[4]" class="num">{{tl.ABR | number:0}}</td>
+                            <td ng-show="showColumn[4]" class="num">{{tl.Mix_ABR | number:2}}</td>
+                            <td ng-show="showColumn[5]" class="num">{{tl.MAY | number:0}}</td>
+                            <td ng-show="showColumn[5]" class="num">{{tl.Mix_MAY | number:2}}</td>
+                            <td ng-show="showColumn[6]" class="num">{{tl.JUN | number:0}}</td>
+                            <td ng-show="showColumn[6]" class="num">{{tl.Mix_JUN | number:2}}</td>
+                            <td ng-show="showColumn[7]" class="num">{{tl.JUL | number:0}}</td>
+                            <td ng-show="showColumn[7]" class="num">{{tl.Mix_JUL | number:2}}</td>
+                            <td ng-show="showColumn[8]" class="num">{{tl.AGO | number:0}}</td>
+                            <td ng-show="showColumn[8]" class="num">{{tl.Mix_AGO | number:2}}</td>
+                            <td ng-show="showColumn[9]" class="num">{{tl.SEP | number:0}}</td>
+                            <td ng-show="showColumn[9]" class="num">{{tl.Mix_SEP | number:2}}</td>
+                            <td ng-show="showColumn[10]" class="num">{{tl.OCT | number:0}}</td>
+                            <td ng-show="showColumn[10]" class="num">{{tl.Mix_OCT | number:2}}</td>
+                            <td ng-show="showColumn[11]" class="num">{{tl.NOV | number:0}}</td>
+                            <td ng-show="showColumn[11]" class="num">{{tl.Mix_NOV | number:2}}</td>
+                            <td ng-show="showColumn[12]" class="num">{{tl.DIC | number:0}}</td>
+                            <td ng-show="showColumn[12]" class="num">{{tl.Mix_DIC | number:2}}</td>
+                            <td class="num">{{tl.Acumulado | number:0}}</td>
+                            <td class="num">{{tl.MIX_ACUM | number:2}}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-condensed table-bordered">
+                        <caption>Reporte por tipo de problema</caption>
+                        <thead>
+                        <tr>
+                            <th>&nbsp;</th>
+                            <th colspan="2" ng-show="showColumn[1]" class="enc">Enero</th>
+                            <th colspan="2" ng-show="showColumn[2]" class="enc">Febrero</th>
+                            <th colspan="2" ng-show="showColumn[3]" class="enc">Marzo</th>
+                            <th colspan="2" ng-show="showColumn[4]" class="enc">Abril</th>
+                            <th colspan="2" ng-show="showColumn[5]" class="enc">Mayo</th>
+                            <th colspan="2" ng-show="showColumn[6]" class="enc">Junio</th>
+                            <th colspan="2" ng-show="showColumn[7]" class="enc">Julio</th>
+                            <th colspan="2" ng-show="showColumn[8]" class="enc">Agosto</th>
+                            <th colspan="2" ng-show="showColumn[9]" class="enc">Septiembre</th>
+                            <th colspan="2" ng-show="showColumn[10]" class="enc">Octubre</th>
+                            <th colspan="2" ng-show="showColumn[11]" class="enc">Noviembre</th>
+                            <th colspan="2" ng-show="showColumn[12]" class="enc">Diciembre</th>
+                            <th colspan="2">Acumulado</th>
+                        </tr>
+                        <tr>
+                            <th>Problema</th>
+                            <th ng-show="showColumn[1]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[1]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[2]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[2]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[3]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[3]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[4]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[4]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[5]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[5]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[6]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[6]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[7]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[7]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[8]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[8]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[9]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[9]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[10]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[10]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[11]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[11]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[12]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[12]" class="enc">% Mix</th>
+                            <th class="enc">Cantidad</th>
+                            <th class="enc">% Mix</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr ng-repeat="tp in data.TiposProblema">
+                            <td>{{tp.TipoProblema}}</td>
+                            <td ng-show="showColumn[1]" class="num">{{tp.ENE | number:0}}</td>
+                            <td ng-show="showColumn[1]" class="num">{{tp.Mix_ENE | number:2}}</td>
+                            <td ng-show="showColumn[2]" class="num">{{tp.FEB | number:0}}</td>
+                            <td ng-show="showColumn[2]" class="num">{{tp.Mix_FEB | number:2}}</td>
+                            <td ng-show="showColumn[3]" class="num">{{tp.MAR | number:0}}</td>
+                            <td ng-show="showColumn[3]" class="num">{{tp.Mix_MAR | number:2}}</td>
+                            <td ng-show="showColumn[4]" class="num">{{tp.ABR | number:0}}</td>
+                            <td ng-show="showColumn[4]" class="num">{{tp.Mix_ABR | number:2}}</td>
+                            <td ng-show="showColumn[5]" class="num">{{tp.MAY | number:0}}</td>
+                            <td ng-show="showColumn[5]" class="num">{{tp.Mix_MAY | number:2}}</td>
+                            <td ng-show="showColumn[6]" class="num">{{tp.JUN | number:0}}</td>
+                            <td ng-show="showColumn[6]" class="num">{{tp.Mix_JUN | number:2}}</td>
+                            <td ng-show="showColumn[7]" class="num">{{tp.JUL | number:0}}</td>
+                            <td ng-show="showColumn[7]" class="num">{{tp.Mix_JUL | number:2}}</td>
+                            <td ng-show="showColumn[8]" class="num">{{tp.AGO | number:0}}</td>
+                            <td ng-show="showColumn[8]" class="num">{{tp.Mix_AGO | number:2}}</td>
+                            <td ng-show="showColumn[9]" class="num">{{tp.SEP | number:0}}</td>
+                            <td ng-show="showColumn[9]" class="num">{{tp.Mix_SEP | number:2}}</td>
+                            <td ng-show="showColumn[10]" class="num">{{tp.OCT | number:0}}</td>
+                            <td ng-show="showColumn[10]" class="num">{{tp.Mix_OCT | number:2}}</td>
+                            <td ng-show="showColumn[11]" class="num">{{tp.NOV | number:0}}</td>
+                            <td ng-show="showColumn[11]" class="num">{{tp.Mix_NOV | number:2}}</td>
+                            <td ng-show="showColumn[12]" class="num">{{tp.DIC | number:0}}</td>
+                            <td ng-show="showColumn[12]" class="num">{{tp.Mix_DIC | number:2}}</td>
+                            <td class="num">{{tp.Acumulado | number:0}}</td>
+                            <td class="num">{{tp.MIX_ACUM | number:2}}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-condensed table-bordered">
+                        <caption>Reporte por ubicaci&oacute;n</caption>
+                        <thead>
+                        <tr>
+                            <th>&nbsp;</th>
+                            <th colspan="2" ng-show="showColumn[1]" class="enc">Enero</th>
+                            <th colspan="2" ng-show="showColumn[2]" class="enc">Febrero</th>
+                            <th colspan="2" ng-show="showColumn[3]" class="enc">Marzo</th>
+                            <th colspan="2" ng-show="showColumn[4]" class="enc">Abril</th>
+                            <th colspan="2" ng-show="showColumn[5]" class="enc">Mayo</th>
+                            <th colspan="2" ng-show="showColumn[6]" class="enc">Junio</th>
+                            <th colspan="2" ng-show="showColumn[7]" class="enc">Julio</th>
+                            <th colspan="2" ng-show="showColumn[8]" class="enc">Agosto</th>
+                            <th colspan="2" ng-show="showColumn[9]" class="enc">Septiembre</th>
+                            <th colspan="2" ng-show="showColumn[10]" class="enc">Octubre</th>
+                            <th colspan="2" ng-show="showColumn[11]" class="enc">Noviembre</th>
+                            <th colspan="2" ng-show="showColumn[12]" class="enc">Diciembre</th>
+                            <th colspan="2">Acumulado</th>
+                        </tr>
+                        <tr>
+                            <th>Ubicaci&oacute;n</th>
+                            <th ng-show="showColumn[1]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[1]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[2]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[2]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[3]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[3]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[4]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[4]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[5]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[5]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[6]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[6]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[7]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[7]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[8]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[8]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[9]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[9]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[10]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[10]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[11]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[11]" class="enc">% Mix</th>
+                            <th ng-show="showColumn[12]" class="enc">Cantidad</th>
+                            <th ng-show="showColumn[12]" class="enc">% Mix</th>
+                            <th class="enc">Cantidad</th>
+                            <th class="enc">% Mix</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr ng-repeat="u in data.Ubicaciones">
+                            <td>{{u.Ubicacion}}</td>
+                            <td ng-show="showColumn[1]" class="num">{{u.ENE | number:0}}</td>
+                            <td ng-show="showColumn[1]" class="num">{{u.Mix_ENE | number:2}}</td>
+                            <td ng-show="showColumn[2]" class="num">{{u.FEB | number:0}}</td>
+                            <td ng-show="showColumn[2]" class="num">{{u.Mix_FEB | number:2}}</td>
+                            <td ng-show="showColumn[3]" class="num">{{u.MAR | number:0}}</td>
+                            <td ng-show="showColumn[3]" class="num">{{u.Mix_MAR | number:2}}</td>
+                            <td ng-show="showColumn[4]" class="num">{{u.ABR | number:0}}</td>
+                            <td ng-show="showColumn[4]" class="num">{{u.Mix_ABR | number:2}}</td>
+                            <td ng-show="showColumn[5]" class="num">{{u.MAY | number:0}}</td>
+                            <td ng-show="showColumn[5]" class="num">{{u.Mix_MAY | number:2}}</td>
+                            <td ng-show="showColumn[6]" class="num">{{u.JUN | number:0}}</td>
+                            <td ng-show="showColumn[6]" class="num">{{u.Mix_JUN | number:2}}</td>
+                            <td ng-show="showColumn[7]" class="num">{{u.JUL | number:0}}</td>
+                            <td ng-show="showColumn[7]" class="num">{{u.Mix_JUL | number:2}}</td>
+                            <td ng-show="showColumn[8]" class="num">{{u.AGO | number:0}}</td>
+                            <td ng-show="showColumn[8]" class="num">{{u.Mix_AGO | number:2}}</td>
+                            <td ng-show="showColumn[9]" class="num">{{u.SEP | number:0}}</td>
+                            <td ng-show="showColumn[9]" class="num">{{u.Mix_SEP | number:2}}</td>
+                            <td ng-show="showColumn[10]" class="num">{{u.OCT | number:0}}</td>
+                            <td ng-show="showColumn[10]" class="num">{{u.Mix_OCT | number:2}}</td>
+                            <td ng-show="showColumn[11]" class="num">{{u.NOV | number:0}}</td>
+                            <td ng-show="showColumn[11]" class="num">{{u.Mix_NOV | number:2}}</td>
+                            <td ng-show="showColumn[12]" class="num">{{u.DIC | number:0}}</td>
+                            <td ng-show="showColumn[12]" class="num">{{u.Mix_DIC | number:2}}</td>
+                            <td class="num">{{u.Acumulado | number:0}}</td>
+                            <td class="num">{{u.MIX_ACUM | number:2}}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript" src="https://code.angularjs.org/1.5.8/angular.min.js"></script>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+    <script type="text/javascript" src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+    <script type="text/javascript" src="libs/momentjs/moment.min.js"></script>
+    <script type="text/javascript" src="libs/momentjs/moment-with-locales.min.js"></script>
+    <script type="text/javascript" src="libs/filesaver/FileSaver.min.js"></script>
+    <script type="text/javascript" src="js/app.js"></script>
+
+    <script type="text/javascript" src="js/controllers/rptintegractrl.js"></script>
+
+    <script type="text/javascript" src="js/services/commonsrvc.js"></script>
+    <script type="text/javascript" src="js/services/rptintegrasrvc.js"></script>
+</body>
+</html>
